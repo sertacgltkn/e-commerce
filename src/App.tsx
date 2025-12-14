@@ -1,16 +1,17 @@
-import { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
-import { Navbar } from './components/common/Navbar';
-import { Footer } from './components/common/Footer';
-import { CartDrawer } from './components/common/CartDrawer';
-import { HomePage } from './pages/HomePage';
-import { ProductDetailsPage } from './pages/ProductDetailsPage';
-import { CartPage } from './pages/CartPage';
-import { LoginPage } from './pages/LoginPage';
-import { SignupPage } from './pages/SignupPage.tsx';
-import { CheckoutPage } from './pages/CheckoutPage.tsx';
-import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider } from './context/AuthContext';
+import { useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { Navbar } from "./components/common/Navbar";
+import { Footer } from "./components/common/Footer";
+import { CartDrawer } from "./components/common/CartDrawer";
+import { HomePage } from "./pages/HomePage";
+import { ProductDetailsPage } from "./pages/ProductDetailsPage";
+import { CartPage } from "./pages/CartPage";
+import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage.tsx";
+import { CheckoutPage } from "./pages/CheckoutPage.tsx";
+import { ProfilePage } from "./pages/ProfilePage";
+import { ThemeProvider } from "./context/ThemeContext";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   const { pathname } = useLocation();
@@ -33,6 +34,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Routes>
           </main>
 
