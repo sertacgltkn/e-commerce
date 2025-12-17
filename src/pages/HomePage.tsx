@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getProducts } from '../services/api';
 import type { Product } from '../types';
 import { ProductCard } from '../components/product/ProductCard';
-import { Zap } from 'lucide-react';
+import { SearchAutocomplete } from '../components/common/SearchAutocomplete';
+import { ProductGridSkeleton } from '../components/common/LoadingSkeleton';
+import { Zap, Filter, X, Clock } from 'lucide-react';
 import { Button } from '../components/common/Button';
+import { useRecentlyViewed } from '../context/RecentlyViewedContext';
+
+type SortOption = 'default' | 'price-low' | 'price-high' | 'rating-high' | 'rating-low' | 'name-asc' | 'name-desc';
 
 export const HomePage: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -11,6 +16,12 @@ export const HomePage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
+    const [minPrice, setMinPrice] = useState(0);
+    const [maxPrice, setMaxPrice] = useState(1000);
+    const [minRating, setMinRating] = useState(0);
+    const [sortBy, setSortBy] = useState<SortOption>('default');
+    const [showFilters, setShowFilters] = useState(false);
+    const { recentlyViewed } = useRecentlyViewed();
 
     useEffect(() => {
         getProducts().then(data => {
@@ -24,16 +35,52 @@ export const HomePage: React.FC = () => {
 
     const categories = ["all", ...new Set(products.map(p => p.category))];
 
-    const filteredProducts = products.filter(product => {
-        const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
+    const maxProductPrice = useMemo(() => {
+        return products.length > 0 ? Math.max(...products.map(p => p.price)) : 1000;
+    }, [products]);
+
+    const filteredAndSortedProducts = useMemo(() => {
+        let filtered = products.filter(product => {
+            const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+            const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
+            const matchesRating = product.rating ? product.rating.rate >= minRating : false;
+            return matchesSearch && matchesCategory && matchesPrice && matchesRating;
+        });
+
+        // Sorting
+        switch (sortBy) {
+            case 'price-low':
+                filtered.sort((a, b) => a.price - b.price);
+                break;
+            case 'price-high':
+                filtered.sort((a, b) => b.price - a.price);
+                break;
+            case 'rating-high':
+                filtered.sort((a, b) => (b.rating?.rate || 0) - (a.rating?.rate || 0));
+                break;
+            case 'rating-low':
+                filtered.sort((a, b) => (a.rating?.rate || 0) - (b.rating?.rate || 0));
+                break;
+            case 'name-asc':
+                filtered.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            case 'name-desc':
+                filtered.sort((a, b) => b.title.localeCompare(a.title));
+                break;
+            default:
+                break;
+        }
+
+        return filtered;
+    }, [products, searchTerm, selectedCategory, minPrice, maxPrice, minRating, sortBy]);
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg">
-                <span className="loading loading-spinner loading-lg text-primary"></span>
+            <div className="space-y-20 pb-12">
+                <div className="container mx-auto px-4">
+                    <ProductGridSkeleton count={8} />
+                </div>
             </div>
         );
     }
@@ -116,36 +163,142 @@ export const HomePage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Search and Filter */}
-            <section className="container mx-auto px-4 sticky top-24 z-30 bg-gray-50/90 dark:bg-dark-bg/90 backdrop-blur-md py-4 -mx-4 px-4 transition-colors duration-300">
-                <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
-                    <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar w-full md:w-auto mask-linear-fade">
-                        {categories.map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={`px-6 py-2.5 rounded-full capitalize whitespace-nowrap transition-all font-medium text-sm ${selectedCategory === cat
-                                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg scale-105'
-                                    : 'bg-white dark:bg-dark-card text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-dark-border'
-                                    }`}
-                            >
-                                {cat}
-                            </button>
+            {/* Recently Viewed Section */}
+            {recentlyViewed.length > 0 && (
+                <section className="container mx-auto px-4">
+                    <div className="flex justify-between items-end mb-10">
+                        <div>
+                            <h2 className="text-3xl font-bold font-display dark:text-white flex items-center gap-2">
+                                <Clock className="text-blue-500" /> Recently Viewed
+                            </h2>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2">Continue browsing where you left off</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {recentlyViewed.slice(0, 4).map((product) => (
+                            <ProductCard key={`recent-${product.id}`} product={product} />
                         ))}
                     </div>
+                </section>
+            )}
 
-                    <div className="relative w-full md:w-96">
-                        <input
-                            type="text"
-                            placeholder="Search for products..."
-                            className="input-field pl-10 rounded-full"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+            {/* Search and Filter */}
+            <section className="container mx-auto px-4 sticky top-24 z-30 bg-gray-50/90 dark:bg-dark-bg/90 backdrop-blur-md py-4 -mx-4 px-4 transition-colors duration-300">
+                <div className="flex flex-col gap-6">
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar w-full md:w-auto mask-linear-fade">
+                            {categories.map((cat) => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setSelectedCategory(cat)}
+                                    className={`px-6 py-2.5 rounded-full capitalize whitespace-nowrap transition-all font-medium text-sm ${selectedCategory === cat
+                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg scale-105'
+                                        : 'bg-white dark:bg-dark-card text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-dark-border'
+                                        }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-3 w-full md:w-auto">
+                            <SearchAutocomplete
+                                products={products}
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                onSelect={(product) => {
+                                    window.location.href = `/product/${product.id}`;
+                                }}
+                                className="flex-1 md:w-96"
+                            />
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="whitespace-nowrap"
+                            >
+                                <Filter className="w-4 h-4 mr-2" />
+                                Filters
+                            </Button>
+                        </div>
                     </div>
+
+                    {/* Advanced Filters */}
+                    {showFilters && (
+                        <div className="bg-white dark:bg-dark-card rounded-xl p-6 border border-gray-200 dark:border-dark-border space-y-6 animate-in slide-in-from-top-2">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold text-lg dark:text-white">Advanced Filters</h3>
+                                <button
+                                    onClick={() => setShowFilters(false)}
+                                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="grid md:grid-cols-3 gap-6">
+                                {/* Price Range */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 dark:text-white">
+                                        Price Range: ${minPrice} - ${maxPrice}
+                                    </label>
+                                    <div className="space-y-2">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max={maxProductPrice}
+                                            value={minPrice}
+                                            onChange={(e) => setMinPrice(Number(e.target.value))}
+                                            className="w-full"
+                                        />
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max={maxProductPrice}
+                                            value={maxPrice}
+                                            onChange={(e) => setMaxPrice(Number(e.target.value))}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Rating Filter */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 dark:text-white">
+                                        Minimum Rating: {minRating > 0 ? `${minRating}+` : 'Any'}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="5"
+                                        step="0.5"
+                                        value={minRating}
+                                        onChange={(e) => setMinRating(Number(e.target.value))}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                {/* Sort By */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 dark:text-white">
+                                        Sort By
+                                    </label>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value as SortOption)}
+                                        className="w-full input-field"
+                                    >
+                                        <option value="default">Default</option>
+                                        <option value="price-low">Price: Low to High</option>
+                                        <option value="price-high">Price: High to Low</option>
+                                        <option value="rating-high">Rating: High to Low</option>
+                                        <option value="rating-low">Rating: Low to High</option>
+                                        <option value="name-asc">Name: A to Z</option>
+                                        <option value="name-desc">Name: Z to A</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -153,16 +306,16 @@ export const HomePage: React.FC = () => {
             <section className="container mx-auto px-4">
                 <div className="flex justify-between items-end mb-8">
                     <h2 className="text-2xl font-bold font-display dark:text-white">All Products</h2>
-                    <span className="text-sm text-gray-500">{filteredProducts.length} items</span>
+                    <span className="text-sm text-gray-500">{filteredAndSortedProducts.length} items</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {filteredProducts.map((product) => (
+                    {filteredAndSortedProducts.map((product) => (
                         <ProductCard key={product.id} product={product} />
                     ))}
                 </div>
 
-                {filteredProducts.length === 0 && (
+                {filteredAndSortedProducts.length === 0 && (
                     <div className="text-center py-20">
                         <div className="inline-flex justify-center items-center w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 mb-6">
                             <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>

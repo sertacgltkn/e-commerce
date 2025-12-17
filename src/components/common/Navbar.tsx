@@ -4,12 +4,16 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { Button } from "./Button";
-import { ShoppingBag, Sun, Moon, LogOut, User as UserIcon } from "lucide-react";
+import { ShoppingBag, Sun, Moon, LogOut, User as UserIcon, Heart, GitCompare } from "lucide-react";
+import { useWishlist } from "../../context/WishlistContext";
+import { useComparison } from "../../context/ComparisonContext";
 
 export const Navbar: React.FC = () => {
   const { totalItems, setIsDrawerOpen } = useCart();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { wishlist } = useWishlist();
+  const { comparison } = useComparison();
 
   return (
     <div className="navbar bg-white/80 dark:bg-dark-bg/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 dark:border-dark-border h-20 px-4 md:px-8 transition-colors duration-300">
@@ -61,6 +65,30 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
         )}
+
+        <Link
+          to="/wishlist"
+          className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+        >
+          <Heart size={20} className={wishlist.length > 0 ? 'fill-red-500 text-red-500' : ''} />
+          {wishlist.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-dark-bg">
+              {wishlist.length}
+            </span>
+          )}
+        </Link>
+
+        <Link
+          to="/compare"
+          className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+        >
+          <GitCompare size={20} className={comparison.length > 0 ? 'fill-blue-500 text-blue-500' : ''} />
+          {comparison.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-dark-bg">
+              {comparison.length}
+            </span>
+          )}
+        </Link>
 
         <button
           className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"

@@ -10,6 +10,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage.tsx";
 import { CheckoutPage } from "./pages/CheckoutPage.tsx";
 import { ProfilePage } from "./pages/ProfilePage";
+import { WishlistPage } from "./pages/WishlistPage";
+import { ComparisonPage } from "./pages/ComparisonPage";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -31,6 +33,8 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/product/:id" element={<ProductDetailsPage />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/compare" element={<ComparisonPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
