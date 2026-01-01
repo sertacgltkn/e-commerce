@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import type { Product } from '../../types';
@@ -9,7 +9,7 @@ import { useComparison } from '../../context/ComparisonContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductBadges } from './ProductBadges';
 import { Star, Heart, Eye, GitCompare } from 'lucide-react';
-import { QuickViewModal } from './QuickViewModal';
+const QuickViewModal = React.lazy(() => import('./QuickViewModal'));
 
 interface ProductCardProps {
     product: Product;
@@ -88,11 +88,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     discount={product.id % 5 === 0 ? 20 : undefined}
                 />
 
-                {/* Category Badge */}
-                <div className="absolute bottom-3 left-3">
+
+                {/* Category Badge & Out of Stock */}
+                <div className="absolute bottom-3 left-3 flex gap-2 items-end">
                     <span className="bg-white/90 dark:bg-dark-bg/90 backdrop-blur-sm px-3 py-1 text-xs font-bold text-gray-900 dark:text-white rounded-full shadow-sm capitalize border border-gray-100 dark:border-dark-border">
                         {product.category}
                     </span>
+                    {!product.inStock && (
+                        <span className="bg-red-500 text-white px-2 py-1 text-xs rounded-full font-bold shadow-sm animate-pulse ml-2">Stokta Yok</span>
+                    )}
                 </div>
 
                 {/* Rating Badge */}
@@ -161,22 +165,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            if (!product.inStock) return;
                             addToCart(product);
                             showToast(`${product.title} added to cart!`, 'success');
                         }}
                         className="rounded-xl shadow-lg shadow-primary-500/20"
                         size="sm"
+                        disabled={!product.inStock}
                     >
-                        Add to Cart
+                        {product.inStock === false ? 'Stokta Yok' : 'Add to Cart'}
                     </Button>
                 </div>
             </div>
 
-            <QuickViewModal
-                product={product}
-                isOpen={isQuickViewOpen}
-                onClose={() => setIsQuickViewOpen(false)}
-            />
+            <Suspense fallback={<div className="p-8"><span>Loading Quick View...</span></div>}>
+                {isQuickViewOpen && (
+                    <QuickViewModal
+                        product={product}
+                        isOpen={isQuickViewOpen}
+                        onClose={() => setIsQuickViewOpen(false)}
+                    />
+                )}
+            </Suspense>
         </motion.div>
     );
 };

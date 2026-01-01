@@ -12,4 +12,5 @@ export interface Product {
     rate: number;
     count: number;
   };
+  inStock?: boolean; // Ürün stok durumu (varsayılan true)
 }
